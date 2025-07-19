@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hazard Detection and Risk Control</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .microphone-active {
+            color: #ef4444;
+        }
+
+        .image-preview {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-top: 16px;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="app-container bg-white p-6 rounded-xl shadow-lg w-full max-w-md mx-auto border border-gray-200">
+        <h1 class="text-3xl font-bold text-center text-blue-700 mb-6">Hazard Detection and Risk Control</h1>
+
+        <div id="appMessage" class="hidden p-3 mb-4 rounded-lg text-center text-sm" role="alert"></div>
+
+        <div class="mb-4">
+            <label for="languageSelect" class="block text-gray-700 text-base font-semibold mb-2">
+                Select Language for Voice Input:
+            </label>
+            <select id="languageSelect" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ease-in-out text-gray-800 shadow-sm">
+                <option value="en-US">English (US)</option>
+                <option value="hi-IN">Hindi (India)</option>
+            </select>
+        </div>
+
+        <div class="mb-6">
+            <label for="hazardInput" class="block text-gray-700 text-lg font-semibold mb-2">
+                Enter Hazard, Unsafe Act, or Unsafe Condition:
+            </label>
+            <div class="flex items-center space-x-2">
+                <textarea
+                    id="hazardInput"
+                    class="flex-grow p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ease-in-out text-gray-800 resize-y shadow-sm"
+                    rows="4"
+                    placeholder="e.g., 'Slippery floor near entrance', 'Working at height without harness', 'Damaged electrical cable'"
+                ></textarea>
+                <button id="voiceInputButton" class="p-3 bg-gray-200 rounded-full hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 ease-in-out shadow-sm">
+                    <i class="fas fa-microphone text-gray-600 text-xl" id="micIcon"></i>
+                </button>
+            </div>
+            <p id="voiceStatus" class="text-sm text-gray-500 mt-2 hidden">Click the microphone to speak...</p>
+        </div>
+
+        <div class="mb-6">
+            <label class="block text-gray-700 text-lg font-semibold mb-2">
+                Add a Photo (Optional):
+            </label>
+            <div class="flex items-center space-x-2">
+                <input type="file" id="cameraInput" accept="image/*" capture="camera" class="hidden">
+                <button id="openCameraButton" class="w-full bg-purple-600 text-white py-3 px-6 rounded-lg font-semibold text-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition duration-200 ease-in-out shadow-md">
+                    <i class="fas fa-camera mr-2"></i> Take Photo
+                </button>
+            </div>
+            <div id="imagePreviewContainer" class="mt-4 hidden relative">
+                <img id="imagePreview" class="image-preview w-full" src="" alt="Captured Image">
+                <button id="clearImageButton" class="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 text-sm hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 shadow-md">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="flex flex-col space-y-4">
+            <button
+                id="searchButton"
+                class="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold text-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200 ease-in-out flex items-center justify-center shadow-md"
+            >
+                <span id="buttonText">Get Actions & References</span>
+                <div id="loadingSpinner" class="spinner ml-3 hidden"></div>
+            </button>
+
+            <button
+                id="reportHazardButton"
+                class="w-full bg-green-600 text-white py-3 px-6 rounded-lg font-semibold text-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition duration-200 ease-in-out flex items-center justify-center shadow-md hidden"
+            >
+                <i class="fas fa-clipboard-check mr-2"></i> Report Hazard
+            </button>
+
+            <button
+                id="getInsightButton"
+                class="w-full bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold text-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition duration-200 ease-in-out flex items-center justify-center shadow-md hidden"
+            >
+                <span id="insightButtonText">✨ Get Hazard Insights</span>
+                <div id="insightSpinner" class="spinner ml-3 hidden"></div>
+            </button>
+
+            <button
+                id="getActionPlanButton"
+                class="w-full bg-teal-600 text-white py-3 px-6 rounded-lg font-semibold text-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 transition duration-200 ease-in-out flex items-center justify-center shadow-md hidden"
+            >
+                <span id="actionPlanButtonText">✨ Draft Action Plan</span>
+                <div id="actionPlanSpinner" class="spinner ml-3 hidden"></div>
+            </button>
+
+            <!-- New button for Report Generation -->
+            <button
+                id="prepareReportButton"
+                class="w-full bg-orange-600 text-white py-3 px-6 rounded-lg font-semibold text-lg hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition duration-200 ease-in-out flex items-center justify-center shadow-md hidden"
+            >
+                <span id="reportButtonText">📊 Prepare Report</span>
+                <div id="reportSpinner" class="spinner ml-3 hidden"></div>
+            </button>
+        </div>
+
+        <div id="results" class="mt-8 p-5 bg-gray-50 rounded-xl border border-gray-200 shadow-inner hidden">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">Information Found:</h2>
+
+            <div id="correctiveActions" class="mb-6 p-4 bg-white rounded-lg shadow-sm">
+                <h3 class="text-xl font-semibold text-blue-600 mb-3 border-b-2 border-blue-200 pb-2">
+                    Corrective Actions:
+                </h3>
+                <ul class="list-disc list-inside text-gray-700 space-y-2"></ul>
+            </div>
+
+            <div id="preventiveActions" class="mb-6 p-4 bg-white rounded-lg shadow-sm">
+                <h3 class="text-xl font-semibold text-green-600 mb-3 border-b-2 border-green-200 pb-2">
+                    Preventive Actions:
+                </h3>
+                <ul class="list-disc list-inside text-gray-700 space-y-2"></ul>
+            </div>
+
+            <div id="possibleInjuries" class="mb-6 p-4 bg-white rounded-lg shadow-sm">
+                <h3 class="text-xl font-semibold text-red-600 mb-3 border-b-2 border-red-200 pb-2">
+                    Possible Injuries:
+                </h3>
+                <ul class="list-disc list-inside text-gray-700 space-y-2"></ul>
+            </div>
+
+            <div id="dubaiCodeReferences" class="mb-6 p-4 bg-white rounded-lg shadow-sm">
+                <h3 class="text-xl font-semibold text-orange-600 mb-3 border-b-2 border-orange-200 pb-2">
+                    Dubai Code of Construction Practice References:
+                </h3>
+                <ul class="list-disc list-inside text-gray-700 space-y-2"></ul>
+            </div>
+
+            <div id="hazardInsight" class="mb-6 p-4 bg-white rounded-lg shadow-sm hidden">
+                <h3 class="text-xl font-semibold text-indigo-600 mb-3 border-b-2 border-indigo-200 pb-2">
+                    ✨ Hazard Insights:
+                </h3>
+                <p class="text-gray-700"></p>
+            </div>
+
+            <div id="actionPlan" class="mb-6 p-4 bg-white rounded-lg shadow-sm hidden">
+                <h3 class="text-xl font-semibold text-teal-600 mb-3 border-b-2 border-teal-200 pb-2">
+                    ✨ Drafted Action Plan:
+                </h3>
+                <div class="text-gray-700 prose max-w-none"></div>
+            </div>
+
+            <!-- New output area for the generated report -->
+            <div id="generatedReport" class="p-4 bg-white rounded-lg shadow-sm hidden">
+                <h3 class="text-xl font-semibold text-gray-800 mb-3 border-b-2 border-gray-300 pb-2">
+                    📊 Hazard Report:
+                </h3>
+                <div class="text-gray-700 prose max-w-none"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        const hazardInput = document.getElementById('hazardInput');
+        const searchButton = document.getElementById('searchButton');
+        const buttonText = document.getElementById('buttonText');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const resultsDiv = document.getElementById('results');
+        const correctiveActionsList = resultsDiv.querySelector('#correctiveActions ul');
+        const preventiveActionsList = resultsDiv.querySelector('#preventiveActions ul');
+        const possibleInjuriesList = resultsDiv.querySelector('#possibleInjuries ul');
+        const dubaiCodeReferencesList = resultsDiv.querySelector('#dubaiCodeReferences ul');
+        const appMessage = document.getElementById('appMessage');
+
+        const voiceInputButton = document.getElementById('voiceInputButton');
+        const micIcon = document.getElementById('micIcon');
+        const voiceStatus = document.getElementById('voiceStatus');
+        const languageSelect = document.getElementById('languageSelect');
+
+        const openCameraButton = document.getElementById('openCameraButton');
+        const cameraInput = document.getElementById('cameraInput');
+        const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+        const clearImageButton = document.getElementById('clearImageButton');
+
+        const reportHazardButton = document.getElementById('reportHazardButton');
+
+        const getInsightButton = document.getElementById('getInsightButton');
+        const insightButtonText = document.getElementById('insightButtonText');
+        const insightSpinner = document.getElementById('insightSpinner');
+        const hazardInsightDiv = document.getElementById('hazardInsight');
+        const hazardInsightContent = hazardInsightDiv.querySelector('p');
+
+        const getActionPlanButton = document.getElementById('getActionPlanButton');
+        const actionPlanButtonText = document.getElementById('actionPlanButtonText');
+        const actionPlanSpinner = document.getElementById('actionPlanSpinner');
+        const actionPlanDiv = document.getElementById('actionPlan');
+        const actionPlanContent = actionPlanDiv.querySelector('div');
+
+        // New elements for report generation
+        const prepareReportButton = document.getElementById('prepareReportButton');
+        const reportButtonText = document.getElementById('reportButtonText');
+        const reportSpinner = document.getElementById('reportSpinner');
+        const generatedReportDiv = document.getElementById('generatedReport');
+        const generatedReportContent = generatedReportDiv.querySelector('div');
+
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition;
+        let isListening = false;
+
+        function showMessage(message, type = 'info') {
+            appMessage.textContent = message;
+            appMessage.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-green-100', 'text-green-700', 'bg-blue-100', 'text-blue-700', 'bg-yellow-100', 'text-yellow-700');
+            if (type === 'error') {
+                appMessage.classList.add('bg-red-100', 'text-red-700');
+            } else if (type === 'success') {
+                appMessage.classList.add('bg-green-100', 'text-green-700');
+            } else if (type === 'warning') {
+                appMessage.classList.add('bg-yellow-100', 'text-yellow-700');
+            } else {
+                appMessage.classList.add('bg-blue-100', 'text-blue-700');
+            }
+            setTimeout(() => {
+                appMessage.classList.add('hidden');
+            }, 5000);
+        }
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = languageSelect.value;
+
+            languageSelect.addEventListener('change', () => {
+                recognition.lang = languageSelect.value;
+            });
+
+            recognition.onstart = () => {
+                isListening = true;
+                micIcon.classList.add('microphone-active');
+                voiceStatus.textContent = 'Listening... Speak now.';
+                voiceStatus.classList.remove('hidden');
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                hazardInput.value = transcript;
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                voiceStatus.textContent = `Error: ${event.error}. Try again.`;
+                micIcon.classList.remove('microphone-active');
+                isListening = false;
+                showMessage(`Voice input error: ${event.error}`, 'error');
+            };
+
+            recognition.onend = () => {
+                isListening = false;
+                micIcon.classList.remove('microphone-active');
+                voiceStatus.textContent = 'Click the microphone to speak...';
+                voiceStatus.classList.remove('hidden');
+            };
+
+            voiceInputButton.addEventListener('click', () => {
+                if (isListening) {
+                    recognition.stop();
+                    voiceStatus.textContent = 'Stopped listening.';
+                } else {
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        console.error('Error starting speech recognition:', e);
+                        voiceStatus.textContent = 'Could not start voice input. Please check microphone permissions.';
+                        voiceStatus.classList.remove('hidden');
+                        showMessage('Could not start voice input. Check microphone permissions.', 'error');
+                    }
+                }
+            });
+        } else {
+            voiceInputButton.style.display = 'none';
+            voiceStatus.textContent = 'Voice input not supported in your browser.';
+            voiceStatus.classList.remove('hidden');
+            languageSelect.style.display = 'none';
+        }
+
+        openCameraButton.addEventListener('click', () => {
+            cameraInput.click();
+        });
+
+        cameraInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    imagePreview.src = e.target.result;
+                    imagePreviewContainer.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            } else {
+                imagePreview.src = '';
+                imagePreviewContainer.classList.add('hidden');
+            }
+        });
+
+        clearImageButton.addEventListener('click', () => {
+            imagePreview.src = '';
+            imagePreviewContainer.classList.add('hidden');
+            cameraInput.value = '';
+        });
+
+        function clearResults() {
+            correctiveActionsList.innerHTML = '';
+            preventiveActionsList.innerHTML = '';
+            possibleInjuriesList.innerHTML = '';
+            dubaiCodeReferencesList.innerHTML = '';
+            hazardInsightContent.innerHTML = '';
+            hazardInsightDiv.classList.add('hidden');
+            actionPlanContent.innerHTML = '';
+            actionPlanDiv.classList.add('hidden');
+            generatedReportContent.innerHTML = ''; // Clear new report content
+            generatedReportDiv.classList.add('hidden'); // Hide new report div
+            resultsDiv.classList.add('hidden');
+            reportHazardButton.classList.add('hidden');
+            getInsightButton.classList.add('hidden');
+            getActionPlanButton.classList.add('hidden');
+            prepareReportButton.classList.add('hidden'); // Hide new report button
+            appMessage.classList.add('hidden');
+        }
+
+        function displayResults(data, listElement) {
+            if (data && data.length > 0) {
+                data.forEach(item => {
+                    const li = document.createElement('li');
+                    li.textContent = item.snippet || item.url;
+                    listElement.appendChild(li);
+                });
+            } else {
+                const li = document.createElement('li');
+                li.textContent = 'No specific information found.';
+                li.classList.add('text-gray-500', 'italic');
+                listElement.appendChild(li);
+            }
+        }
+
+        async function searchHazard() {
+            clearResults();
+            const hazard = hazardInput.value.trim();
+            let base64ImageData = null;
+
+            if (imagePreview.src && imagePreview.src.startsWith('data:image')) {
+                base64ImageData = imagePreview.src.split(',')[1];
+            }
+
+            if (!hazard && !base64ImageData) {
+                showMessage('Please enter a hazard, unsafe act, unsafe condition, or provide an image.', 'error');
+                return;
+            }
+
+            searchButton.disabled = true;
+            buttonText.textContent = 'Searching...';
+            loadingSpinner.classList.remove('hidden');
+            showMessage('Searching for information...', 'info');
+
+            try {
+                const queries = [
+                    `What are the corrective actions for ${hazard} in construction safety?`,
+                    `How to prevent ${hazard} in construction safety?`,
+                    `What are the possible injuries from ${hazard} in construction?`,
+                    `Dubai Code of Construction Practice reference for ${hazard}`
+                ];
+
+                const contents = [{
+                    role: "user",
+                    parts: [{
+                        text: `Please use the google_search tool to find information for the following queries and return the results as a JSON array. Each element in the array should correspond to a query. For each query, include the 'results' array from the search tool's output.
+                        Queries:
+                        1. "${queries[0]}"
+                        2. "${queries[1]}"
+                        3. "${queries[2]}"
+                        4. "${queries[3]}"
+                        `
+                    }]
+                }];
+
+                if (base64ImageData) {
+                    contents[0].parts.push({
+                        inlineData: {
+                            mimeType: "image/png",
+                            data: base64ImageData
+                        }
+                    });
+                }
+
+                const payload = {
+                    contents: contents,
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "ARRAY",
+                            items: {
+                                type: "OBJECT",
+                                properties: {
+                                    "query": { "type": "STRING" },
+                                    "results": {
+                                        type: "ARRAY",
+                                        items: {
+                                            type: "OBJECT",
+                                            properties: {
+                                                "index": { "type": "STRING" },
+                                                "publication_time": { "type": "STRING" },
+                                                "snippet": { "type": "STRING" },
+                                                "source_title": { "type": "STRING" },
+                                                "url": { "type": "STRING" }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                };
+
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+
+                    const toolResultText = result.candidates[0].content.parts[0].text;
+                    const parsedResult = JSON.parse(toolResultText);
+
+                    const correctiveResults = parsedResult[0]?.results || [];
+                    const preventiveResults = parsedResult[1]?.results || [];
+                    const injuriesResults = parsedResult[2]?.results || [];
+                    const dubaiCodeResults = parsedResult[3]?.results || [];
+
+                    displayResults(correctiveResults, correctiveActionsList);
+                    displayResults(preventiveResults, preventiveActionsList);
+                    displayResults(injuriesResults, possibleInjuriesList);
+                    displayResults(dubaiCodeResults, dubaiCodeReferencesList);
+
+                    resultsDiv.classList.remove('hidden');
+                    reportHazardButton.classList.remove('hidden');
+                    getInsightButton.classList.remove('hidden');
+                    getActionPlanButton.classList.remove('hidden');
+                    prepareReportButton.classList.remove('hidden'); // Show new report button
+                    showMessage('Information retrieved successfully!', 'success');
+
+                } else {
+                    throw new Error('Unexpected API response structure or no content.');
+                }
+
+            } catch (error) {
+                console.error('Error fetching safety information:', error);
+                showMessage('Could not retrieve information. Please try a different query or check your input. Error: ' + error.message, 'error');
+            } finally {
+                searchButton.disabled = false;
+                buttonText.textContent = 'Get Actions & References';
+                loadingSpinner.classList.add('hidden');
+            }
+        }
+
+        async function getHazardInsights() {
+            const hazard = hazardInput.value.trim();
+            if (!hazard) {
+                showMessage('Please enter a hazard to get insights.', 'warning');
+                return;
+            }
+
+            insightButtonText.textContent = 'Getting Insights...';
+            insightSpinner.classList.remove('hidden');
+            getInsightButton.disabled = true;
+            showMessage('Generating hazard insights...', 'info');
+            hazardInsightContent.innerHTML = '';
+            hazardInsightDiv.classList.add('hidden');
+
+            try {
+                const prompt = `Given the hazard/unsafe condition: '${hazard}'. Provide a concise, insightful analysis of this hazard, including potential indirect risks, long-term implications, or broader safety considerations that might not be immediately obvious. Keep it professional and focused on safety.`;
+
+                const payload = {
+                    contents: [{ role: "user", parts: [{ text: prompt }] }]
+                };
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const insightText = result.candidates[0].content.parts[0].text;
+                    hazardInsightContent.textContent = insightText;
+                    hazardInsightDiv.classList.remove('hidden');
+                    showMessage('Hazard insights generated!', 'success');
+                } else {
+                    throw new Error('No insights generated.');
+                }
+            } catch (error) {
+                console.error('Error generating hazard insights:', error);
+                showMessage('Failed to generate hazard insights. Error: ' + error.message, 'error');
+            } finally {
+                insightButtonText.textContent = '✨ Get Hazard Insights';
+                insightSpinner.classList.add('hidden');
+                getInsightButton.disabled = false;
+            }
+        }
+
+        async function draftActionPlan() {
+            const hazard = hazardInput.value.trim();
+            if (!hazard) {
+                showMessage('Please enter a hazard to draft an action plan.', 'warning');
+                return;
+            }
+
+            actionPlanButtonText.textContent = 'Drafting Plan...';
+            actionPlanSpinner.classList.remove('hidden');
+            getActionPlanButton.disabled = true;
+            showMessage('Drafting action plan...', 'info');
+            actionPlanContent.innerHTML = '';
+            actionPlanDiv.classList.add('hidden');
+
+            try {
+                const correctiveText = Array.from(correctiveActionsList.children).map(li => li.textContent).join('\n');
+                const preventiveText = Array.from(preventiveActionsList.children).map(li => li.textContent).join('\n');
+                const injuriesText = Array.from(possibleInjuriesList.children).map(li => li.textContent).join('\n');
+
+                const prompt = `Based on the following hazard/unsafe condition and retrieved information, draft a concise, step-by-step action plan to address it.
+Hazard: '${hazard}'
+Corrective Actions:
+${correctiveText}
+Preventive Actions:
+${preventiveText}
+Possible Injuries:
+${injuriesText}
+
+Structure the plan with clear steps, responsibilities (general terms like 'Personnel', 'Management', 'Safety Officer'), and a timeline (e.g., 'Immediate', 'Short-term', 'Ongoing'). Use Markdown for formatting (e.g., bullet points, bolding).`;
+
+                const payload = {
+                    contents: [{ role: "user", parts: [{ text: prompt }] }]
+                };
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const planText = result.candidates[0].content.parts[0].text;
+                    actionPlanContent.innerHTML = planText.replace(/\n/g, '<br>');
+                    actionPlanDiv.classList.remove('hidden');
+                    showMessage('Action plan drafted!', 'success');
+                } else {
+                    throw new Error('No action plan generated.');
+                }
+            } catch (error) {
+                console.error('Error generating action plan:', error);
+                showMessage('Failed to draft action plan. Error: ' + error.message, 'error');
+            } finally {
+                actionPlanButtonText.textContent = '✨ Draft Action Plan';
+                actionPlanSpinner.classList.add('hidden');
+                getActionPlanButton.disabled = false;
+            }
+        }
+
+        async function prepareReport() {
+            const hazard = hazardInput.value.trim();
+            if (!hazard) {
+                showMessage('Please enter a hazard to prepare a report.', 'warning');
+                return;
+            }
+
+            // Ensure insights and action plan are available, or generate them first
+            if (hazardInsightContent.innerHTML === '' || actionPlanContent.innerHTML === '') {
+                showMessage('Please generate Hazard Insights and Draft Action Plan first.', 'warning');
+                return;
+            }
+
+            reportButtonText.textContent = 'Preparing Report...';
+            reportSpinner.classList.remove('hidden');
+            prepareReportButton.disabled = true;
+            showMessage('Generating comprehensive report...', 'info');
+            generatedReportContent.innerHTML = '';
+            generatedReportDiv.classList.add('hidden');
+
+            try {
+                const correctiveText = Array.from(correctiveActionsList.children).map(li => li.textContent).join('\n');
+                const preventiveText = Array.from(preventiveActionsList.children).map(li => li.textContent).join('\n');
+                const injuriesText = Array.from(possibleInjuriesList.children).map(li => li.textContent).join('\n');
+                const dubaiCodeText = Array.from(dubaiCodeReferencesList.children).map(li => li.textContent).join('\n');
+                const insights = hazardInsightContent.textContent;
+                const actionPlan = actionPlanContent.textContent; // Use textContent to get raw text
+
+                const prompt = `Prepare a comprehensive safety report based on the following information. Format it professionally using Markdown, including clear headings, bullet points, and a summary.
+
+## Hazard Observation Report
+
+**Date of Observation:** ${new Date().toLocaleDateString()}
+**Observed Hazard/Unsafe Act/Unsafe Condition:** ${hazard}
+
+### 1. Hazard Details and Analysis
+${insights}
+
+### 2. Corrective Actions Identified
+${correctiveText || "No specific corrective actions found."}
+
+### 3. Preventive Actions Identified
+${preventiveText || "No specific preventive actions found."}
+
+### 4. Possible Injuries
+${injuriesText || "No specific possible injuries found."}
+
+### 5. Relevant Dubai Code of Construction Practice References
+${dubaiCodeText || "No specific Dubai Code references found."}
+
+### 6. Proposed Action Plan
+${actionPlan || "No action plan drafted."}
+
+### 7. Recommendations and Next Steps
+Based on the above, provide a brief summary of key recommendations and immediate next steps for risk control.`;
+
+                const payload = {
+                    contents: [{ role: "user", parts: [{ text: prompt }] }]
+                };
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const reportText = result.candidates[0].content.parts[0].text;
+                    // For Markdown rendering, you'd typically use a library like 'marked.js'
+                    // For this example, we'll just set it as innerHTML, assuming basic markdown
+                    // will be rendered by browser or for simplicity.
+                    generatedReportContent.innerHTML = reportText.replace(/\n/g, '<br>');
+                    generatedReportDiv.classList.remove('hidden');
+                    showMessage('Report prepared successfully!', 'success');
+                } else {
+                    throw new Error('No report generated.');
+                }
+            } catch (error) {
+                console.error('Error generating report:', error);
+                showMessage('Failed to prepare report. Error: ' + error.message, 'error');
+            } finally {
+                reportButtonText.textContent = '📊 Prepare Report';
+                reportSpinner.classList.add('hidden');
+                prepareReportButton.disabled = false;
+            }
+        }
+
+        async function reportHazard() {
+            const hazard = hazardInput.value.trim();
+            const imageSrc = imagePreview.src;
+
+            if (!hazard && (!imageSrc || !imageSrc.startsWith('data:image'))) {
+                showMessage('Please enter a hazard or provide an image before reporting.', 'error');
+                return;
+            }
+
+            console.log('Reporting Hazard:', {
+                hazardDescription: hazard,
+                imageData: imageSrc.startsWith('data:image') ? 'Image attached' : 'No image',
+                timestamp: new Date().toLocaleString()
+            });
+
+            showMessage('Hazard reported successfully! Thank you for your submission.', 'success');
+
+            hazardInput.value = '';
+            imagePreview.src = '';
+            imagePreviewContainer.classList.add('hidden');
+            cameraInput.value = '';
+            clearResults();
+        }
+
+        searchButton.addEventListener('click', searchHazard);
+        reportHazardButton.addEventListener('click', reportHazard);
+        getInsightButton.addEventListener('click', getHazardInsights);
+        getActionPlanButton.addEventListener('click', draftActionPlan);
+        prepareReportButton.addEventListener('click', prepareReport); // New event listener
+
+        hazardInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                searchHazard();
+            }
+        });
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My First Free App</title>
+</head>
+<body>
+    <h1>Welcome to My Free App!</h1>
+    <p>This is my first web app using HTML, hosted for free.</p>
+</body>
+</html>
